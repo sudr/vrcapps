@@ -1,0 +1,90 @@
+apply plugin: "java"
+apply plugin: "war"
+apply plugin: "jetty"
+apply plugin: "idea"
+apply plugin: "maven"
+apply plugin: "eclipse"
+apply plugin: "cloudfoundry"
+
+group = "org.vrc"
+version = "$sdRestVersion"
+archivesBaseName = "vrcdata"
+
+jettyRun.contextPath = "vrcdata"
+
+project.sourceCompatibility = 1.6
+project.targetCompatibility = 1.6
+
+configurations.all {
+  exclude group: "commons-logging"
+  exclude module: "slf4j-log4j12"
+  exclude module: "servlet-api"
+}
+
+repositories {
+  maven { url "http://repo.springframework.org/milestone" }
+  maven { url "http://repo.springframework.org/release" }
+  mavenCentral()
+  mavenLocal()
+}
+
+dependencies {
+
+  // Logging
+  compile "org.slf4j:slf4j-api:$slf4jVersion"
+  runtime "org.slf4j:jcl-over-slf4j:$slf4jVersion"
+  runtime "ch.qos.logback:logback-classic:$logbackVersion"
+
+  // JPA
+  compile "org.hibernate.javax.persistence:hibernate-jpa-2.0-api:1.0.1.Final"
+  runtime "org.hibernate:hibernate-entitymanager:$hibernateVersion"
+  runtime "org.hsqldb:hsqldb:1.8.0.10"
+  //runtime "commons-dbcp:commons-dbcp:1.4"
+  runtime "c3p0:c3p0:0.9.1.2"
+  runtime "mysql:mysql-connector-java:5.1.16"
+
+  // Spring Data
+  compile "org.springframework.data:spring-data-commons-core:$sdCommonsVersion"
+  compile("org.springframework.data:spring-data-jpa:$sdJpaVersion") { dep ->
+    exclude group: "org.slf4j"
+  }
+
+  // Spring Data REST
+  compile("org.springframework.data:spring-data-rest-webmvc:$sdRestVersion") { dep ->
+    exclude group: "org.slf4j"
+  }
+
+}
+
+task wrapper(type: Wrapper) { gradleVersion = "1.0-rc-1" }
+
+idea {
+  project {
+    jdkName = "1.6"
+    languageLevel = "1.6"
+    ipr {
+      withXml { xml ->
+        xml.node.component.find { it.@name == "VcsDirectoryMappings" }.mapping.@vcs = "Git"
+        xml.node.component.find { it.@name == "ProjectRootManager" }.output.@url = "file://\$PROJECT_DIR\$/build"
+      }
+    }
+  }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+    	mavenRepo url:'http://maven.springframework.org/milestone/'
+    }
+    dependencies {
+        classpath group: 'org.gradle.api.plugins', name: 'gradle-cf-plugin', version: '0.1.0'
+    }
+}
+
+cloudfoundry {
+   username = 'your username'
+   password = 'user password'
+   application = 'vrcdata'
+   framework = 'spring'
+   warFile = new File('path to war file')
+}
